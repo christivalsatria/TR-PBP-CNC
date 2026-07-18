@@ -1,0 +1,15 @@
+info:
+  name: View Weekly Summary
+  type: http
+
+http:
+  method: GET
+  url: http://localhost:5000/api/transactions/summary-weekly
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+​

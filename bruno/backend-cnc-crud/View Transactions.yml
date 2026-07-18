@@ -1,0 +1,20 @@
+info:
+  name: View Transactions
+  type: http
+  seq: 9
+
+http:
+  method: GET
+  url: http://localhost:5000/api/transactions/history
+  body:
+    type: json
+    data: ""
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNWFmZWQwOGZmYzcwMGU5ODA5MDI2MSIsInJvbGUiOiJLYXNpciIsInVzZXJuYW1lIjoiS2FzaXJDTkMiLCJpYXQiOjE3ODQzNjI1NDIsImV4cCI6MTc4NDQ0ODk0Mn0.QdvB3ro5n1d4bf_QUwmxJB6fHHfe0Vm82xv7IOBFCs8
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
