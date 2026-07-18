@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
+const Blacklist = require('../models/Blacklist'); // <--- Tambahkan import ini
 
-const verifyToken = (req, res, next) => {
-  // Mengambil token dari header Authorization (Bearer <TOKEN>)
+const verifyToken = async (req, res, next) => { // <--- Tambahkan 'async' di depan (req, res, next)
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -10,9 +10,15 @@ const verifyToken = (req, res, next) => {
   }
 
   try {
-    // SINKRONISASI: Harus sama persis menggunakan process.env.JWT_SECRET seperti di authRoutes
+    // 1. CEK APAKAH TOKEN SUDAH LOGOUT / MASUK BLACKLIST
+    const isBlacklisted = await Blacklist.findOne({ token });
+    if (isBlacklisted) {
+      return res.status(401).json({ message: "Akses ditolak! Anda sudah logout, silakan login kembali." });
+    }
+
+    // 2. Jika aman, verifikasi JWT seperti biasa
     const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified; // Menyimpan data token (id, role, username) ke req.user
+    req.user = verified; 
     next(); 
   } catch (err) {
     return res.status(403).json({ message: "Token tidak valid atau telah kedaluwarsa." });

@@ -1,38 +1,16 @@
 info:
   name: Delete Products
   type: http
-  seq: 8
+  seq: 6
 
 http:
-  method: PUT
-  url: http://localhost:5000/api/products/6a5b09ea4aa194fd6af9c3b8
+  method: DELETE
+  url: http://localhost:5000/api/products/6a5b15b6ea63ffef32d2f059
   body:
     type: multipart-form
-    data:
-      - name: name
-        type: text
-        value: Kopi Susu Aren
-        contentType: Auto
-      - name: price
-        type: text
-        value: "16500"
-        contentType: Auto
-      - name: stock
-        type: text
-        value: "80"
-        contentType: Auto
-      - name: category
-        type: text
-        value: Minuman
-        contentType: Auto
-      - name: image
-        type: file
-        value:
-          - c:\ARYA\Kuliah Semester 6\PBP\Proyek\bruno\backend-cnc-crud\kopisusuaren.jpeg
-        contentType: File
   auth:
     type: bearer
-    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNWFmZTU4OGZmYzcwMGU5ODA5MDI2MCIsInJvbGUiOiJBZG1pbiIsInVzZXJuYW1lIjoiQWRtaW5DTkMiLCJpYXQiOjE3ODQzNTEwMjgsImV4cCI6MTc4NDQzNzQyOH0.I-mp4aVkx8ffyBFD_wY8NcIYD8sjtuPQDwwCPd2ioCE
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNWFmZTU4OGZmYzcwMGU5ODA5MDI2MCIsInJvbGUiOiJBZG1pbiIsInVzZXJuYW1lIjoiQWRtaW5DTkMiLCJpYXQiOjE3ODQzNjE4NTAsImV4cCI6MTc4NDQ0ODI1MH0.GJQ2EWjO2gidDWEdCk-gio4Cy3wZvrw8I3d1lHWQTmU
 
 settings:
   encodeUrl: true

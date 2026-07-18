@@ -5,9 +5,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// 1. IMPORT MIDDLEWARE KEAMANAN KAMU
-// (Sesuaikan '../middleware/authMiddleware' dengan lokasi & nama file milikmu)
-const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware.js');
+// Import middleware keamanan
+const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
 
 // Konfigurasi penyimpanan file gambar
 const storage = multer.diskStorage({
@@ -25,8 +24,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// 2. TAMBAH PRODUK (Kunci: Wajib Login & Harus Admin)
-router.post('/', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+// 1. TAMBAH PRODUK (Admin) - upload.single di paling depan
+router.post('/', upload.single('image'), verifyToken, verifyAdmin, async (req, res) => {
   try {
     const { name, price, stock, category } = req.body;
     const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
@@ -46,8 +45,8 @@ router.post('/', verifyToken, verifyAdmin, upload.single('image'), async (req, r
   }
 });
 
-// 3. AMBIL SEMUA PRODUK (Bebas Akses / Kasir & Admin)
-router.get('/', async (req, res) => {
+// 2. AMBIL SEMUA PRODUK (Kasir & Admin)
+router.get('/', verifyToken, async (req, res) => {
   try {
     const products = await Product.find();
     res.json(products);
@@ -56,8 +55,8 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 4. AMBIL SATU PRODUK BERDASARKAN ID (Bebas Akses / Kasir & Admin)
-router.get('/:id', async (req, res) => {
+// 3. AMBIL SATU PRODUK BERDASARKAN ID (Kasir & Admin)
+router.get('/:id', verifyToken, async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (!product) {
@@ -69,8 +68,8 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// 5. EDIT PRODUK (Kunci: Wajib Login & Harus Admin)
-router.put('/:id', verifyToken, verifyAdmin, upload.single('image'), async (req, res) => {
+// 4. EDIT PRODUK (Admin) - upload.single di paling depan
+router.put('/:id', upload.single('image'), verifyToken, verifyAdmin, async (req, res) => {
   try {
     const updateData = { ...req.body };
     
@@ -85,7 +84,7 @@ router.put('/:id', verifyToken, verifyAdmin, upload.single('image'), async (req,
   }
 });
 
-// 6. HAPUS PRODUK (Kunci: Wajib Login & Harus Admin)
+// 5. HAPUS PRODUK (Admin)
 router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);

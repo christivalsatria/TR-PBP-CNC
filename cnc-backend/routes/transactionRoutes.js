@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const Transaction = require('../models/Transaction');
 const Product = require('../models/Product');
+const { verifyToken, verifyAdmin } = require('../middleware/authMiddleware');
 
 // 1. Skenario Memproses Pembayaran (Checkout)
-router.post('/checkout', async (req, res) => {
+router.post('/checkout', verifyToken, async (req, res) => {
   try {
     const { customerName, tableNumber, items, amountPaid, cashierName } = req.body;
     // items format: [{ productId: "id", quantity: 2 }]
@@ -69,10 +70,42 @@ router.post('/checkout', async (req, res) => {
 });
 
 // 2. Ambil Riwayat Transaksi (Kasir & Laporan Keuangan Admin)
-router.get('/history', async (req, res) => {
+router.get('/history', verifyToken, async (req, res) => {
   try {
     const history = await Transaction.find().sort({ createdAt: -1 });
     res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 3. Rekap Pendapatan per Minggu (Khusus Admin)
+router.get('/summary-weekly', verifyToken, verifyAdmin, async (req, res) => {
+  try {
+    const weeklySummary = await Transaction.aggregate([
+      {
+        $group: {
+          // Mengelompokkan berdasarkan tahun dan minggu ke-berapa dalam tahun tersebut
+          _id: {
+            year: { $year: "$createdAt" },
+            week: { $week: "$createdAt" }
+          },
+          // Menghitung total omzet pada minggu tersebut
+          totalRevenue: { $sum: "$totalAmount" },
+          // Menghitung jumlah transaksi yang terjadi pada minggu tersebut
+          totalTransactions: { $sum: 1 }
+        }
+      },
+      {
+        // Mengurutkan dari minggu terbaru
+        $sort: { "_id.year": -1, "_id.week": -1 }
+      }
+    ]);
+
+    res.json({
+      message: "Rekap pendapatan mingguan berhasil diambil",
+      data: weeklySummary
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const Blacklist = require('../models/Blacklist');
 
 // Register User Baru
 router.post('/register', async (req, res) => {
@@ -40,12 +41,26 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Logout User
-router.post('/logout', (req, res) => {
+// Logout User (Memasukkan token ke Blacklist)
+router.post('/logout', async (req, res) => {
   try {
-    // Pada JWT stateless, server cukup memberi tahu client untuk menghapus token
-    res.status(200).json({ message: 'Logout berhasil. Silakan hapus token Anda dari client.' });
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(400).json({ message: 'Gagal logout, token tidak ditemukan di header.' });
+    }
+
+    // Masukkan token ke dalam daftar blacklist
+    const blacklistedToken = new Blacklist({ token });
+    await blacklistedToken.save();
+
+    res.status(200).json({ message: 'Logout berhasil! Token Anda telah dinonaktifkan oleh server.' });
   } catch (err) {
+    // Jika token sudah di-blacklist sebelumnya (duplicate key error)
+    if (err.code === 11000) {
+      return res.status(200).json({ message: 'Anda sudah logout sebelumnya.' });
+    }
     res.status(500).json({ error: err.message });
   }
 });
