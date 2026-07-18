@@ -1,0 +1,23 @@
+info:
+  name: Kasir Register
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: http://localhost:5000/api/auth/register
+  body:
+    type: json
+    data: |-
+      {
+        "username": "KasirCNC",
+        "password": "password",
+        "role": "Kasir"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

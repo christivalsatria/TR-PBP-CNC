@@ -1,0 +1,19 @@
+info:
+  name: View All Products
+  type: http
+  seq: 5
+
+http:
+  method: GET
+  url: http://localhost:5000/api/products
+  body:
+    type: multipart-form
+  auth:
+    type: bearer
+    token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhNWFmZTU4OGZmYzcwMGU5ODA5MDI2MCIsInJvbGUiOiJBZG1pbiIsInVzZXJuYW1lIjoiQWRtaW5DTkMiLCJpYXQiOjE3ODQzNTEwMjgsImV4cCI6MTc4NDQzNzQyOH0.I-mp4aVkx8ffyBFD_wY8NcIYD8sjtuPQDwwCPd2ioCE
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
