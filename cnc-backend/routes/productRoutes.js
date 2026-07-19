@@ -87,8 +87,29 @@ router.put('/:id', upload.single('image'), verifyToken, verifyAdmin, async (req,
 // 5. HAPUS PRODUK (Admin)
 router.delete('/:id', verifyToken, verifyAdmin, async (req, res) => {
   try {
+    // 1. Cari data produk terlebih dahulu untuk mengambil nama file gambarnya
+    const product = await Product.findById(req.params.id);
+
+    if (!product) {
+      return res.status(404).json({ message: "Produk tidak ditemukan!" });
+    }
+
+    // 2. Jika produk punya gambar, hapus file gambarnya dari folder 'uploads'
+    if (product.image) {
+      // Ambil nama filenya saja (misal dari 'uploads/1784361816749.webp' menjadi '1784361816749.webp')
+      const imageName = path.basename(product.image); 
+      const imagePath = path.join(__dirname, '../uploads', imageName);
+
+      // Cek apakah filenya benar-benar ada di folder sebelum dihapus
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath); // Menghapus file secara permanen
+      }
+    }
+
+    // 3. Hapus data produk dari database MongoDB
     await Product.findByIdAndDelete(req.params.id);
-    res.json({ message: "Produk berhasil dihapus!" });
+
+    res.json({ message: "Produk dan file gambar berhasil dihapus!" });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
