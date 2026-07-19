@@ -75,12 +75,14 @@ const MenuPage = () => {
 
   const handleAddToOrder = (product) => {
     const currentCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    const targetIndex = currentCart.findIndex((item) => item.id === product.id);
+    // Menghandle _id dari MongoDB Atlas/Compass atau id dari data lokal biasa
+    const productId = product._id || product.id; 
+    const targetIndex = currentCart.findIndex((item) => (item._id || item.id) === productId);
 
     if (targetIndex > -1) {
       currentCart[targetIndex].quantity += 1;
     } else {
-      currentCart.push({ ...product, quantity: 1 });
+      currentCart.push({ ...product, id: productId, quantity: 1 });
     }
 
     localStorage.setItem("cart", JSON.stringify(currentCart));
@@ -136,11 +138,15 @@ const MenuPage = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {displayProducts.map((product) => (
             <div
-              key={product.id}
+              key={product._id || product.id}
               className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all border border-slate-100 flex flex-col"
             >
               <img
-                src={product.image}
+                src={
+                  product.image && product.image.startsWith("/uploads")
+                    ? `http://localhost:5000${product.image}`
+                    : product.image
+                }
                 alt={product.name}
                 className="w-full h-44 object-cover bg-slate-50"
               />

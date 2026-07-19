@@ -25,14 +25,31 @@ const LoginPage = () => {
     try {
       const response = await api.post('/auth/login', { username, password });
       
-      const token = response.data?.token || response.data?.data?.token;
+      // Ambil token dan user objek dari segala kemungkinan bentuk response Axios
+      const token = response?.data?.token || response?.token;
+      const userObj = response?.data?.user || response?.user;
+      const roleMentah = userObj?.role || response?.data?.role || response?.role;
 
       if (token) {
         localStorage.setItem('token', token);
+        const role = roleMentah ? String(roleMentah).trim() : '';
+        localStorage.setItem('role', role);
 
-        console.log('Login sukses dengan token asli!');
+        console.log(`Login sukses! Role yang terdeteksi: "${role}"`);
+
+        // 🟢 LANGKAH KRUSIAL: Matikan loading terlebih dahulu agar elemen form tidak terkunci saat redirect
+        setLoading(false);
+
+        // Pengalihan rute berdasarkan role murni
+        if (role.toLowerCase() === 'admin') {
+          console.log('Mengarahkan ke Dashboard Admin...');
+          navigate('/admin');
+        } else {
+          console.log('Mengarahkan ke Menu Kasir...');
+          navigate('/menu');
+        }
         
-        navigate('/menu');
+        return; // Hentikan fungsi di sini agar tidak masuk ke blok finally
       } else {
         setError('Login berhasil, namun token gagal dikirim oleh server.');
       }
@@ -41,6 +58,7 @@ const LoginPage = () => {
       const msg = err.response?.data?.message || 'Gagal tersambung ke server. Periksa koneksi atau data akun Anda.';
       setError(msg);
     } finally {
+      // Hanya akan berjalan jika proses try di atas gagal/melempar error
       setLoading(false);
     }
   };
@@ -49,18 +67,21 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-[#c58d59]">
       <div className="w-full max-w-[460px] bg-[#FAF6F0] rounded-2xl p-10 flex flex-col items-center shadow-md mx-4">
         
+        {/* LOGO CNC */}
         <div className="w-32 h-32 rounded-full bg-[#713f27] flex items-center justify-center mb-8 select-none">
           <span className="text-6xl font-semibold text-[#c58d59] tracking-wide font-['Afacad']">
             CNC
           </span>
         </div>
 
+        {/* NOTIFIKASI ERROR */}
         {error && (
           <div className="w-full bg-red-100 border border-red-300 text-red-700 p-2.5 rounded-lg text-sm text-center font-medium mb-4">
             {error}
           </div>
         )}
 
+        {/* FORM LOGIN */}
         <form onSubmit={handleSubmit} className="w-full space-y-5">
           <div>
             <label className="block text-[#713f27] text-lg font-bold mb-1">
