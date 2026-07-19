@@ -1,188 +1,106 @@
-import { useState } from 'react';
-
-import { Navigate, useNavigate } from 'react-router';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router';
 
 import api from '../services/api';
 
 const LoginPage = () => {
-    const navigate = useNavigate();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-    const [form, setForm] = useState({
-        username: '',
-        password: '',
-    });
+  const navigate = useNavigate();
 
-    const [error, setError] =
-        useState('');
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
 
-    const [isLoading, setIsLoading] =
-        useState(false);
-
-    const token =
-        localStorage.getItem('token');
-
-    if (token) {
-        return (
-            <Navigate
-                to="/dashboard"
-                replace
-            />
-        );
+    if (!username || !password) {
+      alert('Username dan Password wajib diisi!');
+      return;
     }
 
-    const handleChange = (event) => {
-        const { name, value } =
-            event.target;
+    setLoading(true);
 
-        setForm((currentForm) => ({
-            ...currentForm,
-            [name]: value,
-        }));
-    };
+    try {
+      const response = await api.post('/auth/login', { username, password });
+      
+      const token = response.data?.token || response.data?.data?.token;
 
-    const handleSubmit = async (
-        event
-    ) => {
-        event.preventDefault();
+      if (token) {
+        localStorage.setItem('token', token);
 
-        setError('');
+        console.log('Login sukses dengan token asli!');
+        
+        navigate('/menu');
+      } else {
+        setError('Login berhasil, namun token gagal dikirim oleh server.');
+      }
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || 'Gagal tersambung ke server. Periksa koneksi atau data akun Anda.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        if (
-            !form.username.trim() ||
-            !form.password
-        ) {
-            setError(
-                'Username dan password wajib diisi.'
-            );
-
-            return;
-        }
-
-        setIsLoading(true);
-
-        try {
-            const response =
-                await api.post(
-                    '/auth/login',
-                    {
-                        username:
-                            form.username.trim(),
-                        password:
-                            form.password,
-                    }
-                );
-
-            localStorage.setItem(
-                'token',
-                response.data.token
-            );
-
-            localStorage.setItem(
-                'user',
-                JSON.stringify(
-                    response.data.user
-                )
-            );
-
-            navigate('/dashboard', {
-                replace: true,
-            });
-        } catch (error) {
-            setError(
-                error.response?.data
-                    ?.message ||
-                'Login gagal. Periksa email, password, atau koneksi server.'
-            );
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    return (
-        <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-12">
-            <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-slate-200">
-                <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-slate-900">
-                        S1TI Library
-                    </h1>
-
-                    <p className="mt-2 text-sm text-slate-500">
-                        Silakan login untuk melanjutkan
-                    </p>
-                </div>
-
-                {error && (
-                    <div
-                        role="alert"
-                        className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-                    >
-                        {error}
-                    </div>
-                )}
-
-                <form
-                    onSubmit={handleSubmit}
-                    className="space-y-5"
-                >
-                    <div>
-                        <label
-                            htmlFor="email"
-                            className="mb-2 block text-sm font-semibold text-slate-700"
-                        >
-                            Username
-                        </label>
-
-                        <input
-                            id="username"
-                            type="text"
-                            name="username"
-                            value={form.username}
-                            onChange={
-                                handleChange
-                            }
-                            placeholder="admin@s1ti.test"
-                            autoComplete="email"
-                            className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            htmlFor="password"
-                            className="mb-2 block text-sm font-semibold text-slate-700"
-                        >
-                            Password
-                        </label>
-
-                        <input
-                            id="password"
-                            type="password"
-                            name="password"
-                            value={
-                                form.password
-                            }
-                            onChange={
-                                handleChange
-                            }
-                            placeholder="Masukkan password"
-                            autoComplete="current-password"
-                            className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                        />
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-blue-300"
-                    >
-                        {isLoading
-                            ? 'Memproses...'
-                            : 'Login'}
-                    </button>
-                </form>
-            </div>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[#c58d59]">
+      <div className="w-full max-w-[460px] bg-[#FAF6F0] rounded-2xl p-10 flex flex-col items-center shadow-md mx-4">
+        
+        <div className="w-32 h-32 rounded-full bg-[#713f27] flex items-center justify-center mb-8 select-none">
+          <span className="text-6xl font-semibold text-[#c58d59] tracking-wide font-['Afacad']">
+            CNC
+          </span>
         </div>
-    );
+
+        {error && (
+          <div className="w-full bg-red-100 border border-red-300 text-red-700 p-2.5 rounded-lg text-sm text-center font-medium mb-4">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
+          <div>
+            <label className="block text-[#713f27] text-lg font-bold mb-1">
+              Enter username
+            </label>
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              disabled={loading}
+              className="w-full bg-[#D9D9D9] text-gray-700 placeholder-gray-500 px-4 py-2.5 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#713f27] transition-all"
+            />
+          </div>
+          <div>
+            <label className="block text-[#713f27] text-lg font-bold mb-1">
+              Enter password
+            </label>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              disabled={loading}
+              className="w-full bg-[#D9D9D9] text-gray-700 placeholder-gray-500 px-4 py-2.5 rounded-lg border-none focus:outline-none focus:ring-2 focus:ring-[#713f27] transition-all"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-[#713f27] hover:bg-[#5c321e] text-white text-lg font-medium py-2.5 rounded-lg mt-4 transition-colors duration-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? 'Memproses...' : 'Login'}
+          </button>
+          
+        </form>
+      </div>
+    </div>
+  );
 };
 
 export default LoginPage;
