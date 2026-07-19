@@ -10,16 +10,32 @@ const AdminPage = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State Form Tambah Produk (Master Produk)
+  // State Form Tambah & Edit Produk (Master Produk)
+  const [isEdit, setIsEdit] = useState(false);
+  const [productId, setProductId] = useState(null);
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
+  // Efek untuk mendeteksi jika ada data lemparan untuk EDIT dari halaman daftar produk
   useEffect(() => {
     fetchProducts();
-  }, []);
+    
+    if (location.pathname === "/admin/master" && location.state?.editProduct) {
+      const prod = location.state.editProduct;
+      setIsEdit(true);
+      setProductId(prod._id);
+      setName(prod.name);
+      setPrice(prod.price);
+      setStock(prod.stock);
+      setCategory(prod.category);
+    } else if (location.pathname === "/admin/master") {
+      // Jika masuk ke master biasa tanpa state edit, reset form ke kondisi tambah baru
+      resetForm();
+    }
+  }, [location]);
 
   const fetchProducts = async () => {
     try {
@@ -33,12 +49,31 @@ const AdminPage = () => {
     }
   };
 
+  const resetForm = () => {
+    setIsEdit(false);
+    setProductId(null);
+    setName("");
+    setPrice("");
+    setStock("");
+    setCategory("");
+    setImageFile(null);
+  };
+
+  // HANDLER SUBMIT (Bisa Tambah Baru atau Update Produk)
   const handleSignProduct = async (e) => {
     e.preventDefault();
     if (!name || !price || !stock || !category) {
       alert("Semua field wajib diisi!");
       return;
     }
+
+    // Notifikasi Konfirmasi sebelum Submit Aksi
+    const konfirmasi = window.confirm(
+      isEdit 
+        ? `Apakah Anda yakin ingin memperbarui data menu "${name}"?` 
+        : `Apakah Anda yakin ingin menambahkan menu baru "${name}"?`
+    );
+    if (!konfirmasi) return;
 
     try {
       const formData = new FormData();
@@ -50,22 +85,50 @@ const AdminPage = () => {
         formData.append("image", imageFile);
       }
 
-      await api.post("/products", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      if (isEdit) {
+        // Jalankan Aksi UPDATE (PUT) ke backend
+        await api.put(`/products/${productId}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        alert(`Berhasil! Data menu "${name}" telah diperbarui.`);
+      } else {
+        // Jalankan Aksi TAMBAH BARU (POST) ke backend
+        await api.post("/products", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        alert(`Berhasil! Menu baru "${name}" telah ditambahkan.`);
+      }
 
-      alert("Produk berhasil ditambahkan!");
-      setName("");
-      setPrice("");
-      setStock("");
-      setCategory("");
-      setImageFile(null);
-      
+      resetForm();
       fetchProducts();
-      navigate("/admin/daftar"); // Alihkan rute URL ke daftar stok setelah sukses
+      navigate("/admin/daftar");
     } catch (error) {
-      console.error("Gagal menambah produk:", error);
-      alert("Gagal menambahkan produk.");
+      console.error("Gagal memproses produk:", error);
+      alert(isEdit ? "Gagal memperbarui produk." : "Gagal menambahkan produk.");
+    }
+  };
+
+  // HANDLER ACTION: TOMBOL EDIT DIKLIK
+  const handleEditClick = (prod) => {
+    // Alihkan rute ke halaman master sambil melempar data produk di dalam state rute
+    navigate("/admin/master", { state: { editProduct: prod } });
+  };
+
+  // HANDLER ACTION: TOMBOL DELETE DIKLIK
+  const handleDeleteClick = async (id, namaMenu) => {
+    // 🟢 Perbaikan: Hapus spasi di antara konfirmasi dan Hapus
+    const konfirmasiHapus = window.confirm(
+      `🚨 PERINGATAN!\n\nApakah Anda yakin ingin MENGHAPUS menu "${namaMenu}" secara permanen dari database?`
+    );
+    if (!konfirmasiHapus) return;
+
+    try {
+      await api.delete(`/products/${id}`);
+      alert(`Sukses! Menu "${namaMenu}" telah dihapus secara permanen.`);
+      fetchProducts(); // Segarkan isi tabel data stok
+    } catch (error) {
+      console.error("Gagal menghapus produk:", error);
+      alert("Gagal menghapus produk dari server.");
     }
   };
 
@@ -100,18 +163,29 @@ const AdminPage = () => {
         </div>
       )}
 
-      {/* CONDITIONAL CONTENT 2: MASTER PRODUK (/admin/master) */}
+      {/* CONDITIONAL CONTENT 2: MASTER PRODUK (/admin/master - Handle Tambah & Edit) */}
       {location.pathname === "/admin/master" && (
         <div className="max-w-2xl bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold text-[#713f27] mb-6 flex items-center gap-2">
-            ➕ Master Produk (Tambah Menu Baru)
-          </h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-[#713f27] flex items-center gap-2">
+              {isEdit ? "✏️ Edit Produk Menu" : "➕ Master Produk (Tambah Menu Baru)"}
+            </h2>
+            {isEdit && (
+              <button 
+                onClick={() => { resetForm(); navigate("/admin/master"); }}
+                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition"
+              >
+                Batal Edit
+              </button>
+            )}
+          </div>
+
           <form onSubmit={handleSignProduct} className="space-y-4">
             <div>
               <label className="block text-sm font-bold text-[#713f27] mb-1">Nama Produk</label>
               <input
                 type="text"
-                placeholder="Masukkan nama produk baru"
+                placeholder="Masukkan nama produk"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white outline-none focus:border-[#8C5A3C] transition shadow-sm"
@@ -130,7 +204,9 @@ const AdminPage = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-[#713f27] mb-1">Stok Awal</label>
+                <label className="block text-sm font-bold text-[#713f27] mb-1">
+                  {isEdit ? "Sesuaikan Stok" : "Stok Awal"}
+                </label>
                 <input
                   type="number"
                   placeholder="Pcs"
@@ -155,7 +231,9 @@ const AdminPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-[#713f27] mb-1">Foto Produk</label>
+              <label className="block text-sm font-bold text-[#713f27] mb-1">
+                Foto Produk {isEdit && <span className="text-xs font-normal text-slate-400">(Biarkan kosong jika tidak ingin ganti foto)</span>}
+              </label>
               <input
                 type="file"
                 onChange={(e) => setImageFile(e.target.files[0])}
@@ -167,7 +245,7 @@ const AdminPage = () => {
               type="submit"
               className="w-full bg-[#8C5A3C] hover:bg-[#734428] text-white font-bold py-3 rounded-xl shadow-md transition-colors mt-6"
             >
-              Simpan Ke Database
+              {isEdit ? "Simpan Perubahan" : "Simpan Ke Database"}
             </button>
           </form>
         </div>
@@ -198,6 +276,7 @@ const AdminPage = () => {
                     <th className="p-4 text-sm">Kategori</th>
                     <th className="p-4 text-sm text-center">Sisa Stok</th>
                     <th className="p-4 text-sm">Harga Jual</th>
+                    <th className="p-4 text-sm text-center">Aksi</th> {/* Tambah kolom aksi */}
                   </tr>
                 </thead>
                 <tbody>
@@ -227,6 +306,23 @@ const AdminPage = () => {
                       <td className="p-4 text-sm font-bold text-center text-slate-700">{prod.stock} Pcs</td>
                       <td className="p-4 text-sm font-bold text-[#8C5A3C]">
                         Rp {prod.price ? prod.price.toLocaleString("id-ID") : 0}
+                      </td>
+                      {/* 🛠️ TOMBOL UPDATE DAN DELETE */}
+                      <td className="p-4 text-sm text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditClick(prod)}
+                            className="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 rounded-lg font-medium text-xs transition shadow-sm"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(prod._id, prod.name)}
+                            className="bg-red-600 hover:bg-red-700 text-white px-2.5 py-1 rounded-lg font-medium text-xs transition shadow-sm"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
