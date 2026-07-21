@@ -6,6 +6,7 @@ const OrderPage = () => {
   const [cashAmount, setCashAmount] = useState("");
   const [customer, setCustomer] = useState("");
   const [invoice, setInvoice] = useState(null);
+  const [stage, setStage] = useState(1); // 1: Cart Summary, 2: Cash Input, 3: Receipt Success
 
   useEffect(() => {
     const loadedCart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -23,7 +24,7 @@ const OrderPage = () => {
     const updatedCart = cart.map((item) =>
       (item.id || item._id) === productId
         ? { ...item, quantity: item.quantity + 1 }
-        : item,
+        : item
     );
     updateCartState(updatedCart);
   };
@@ -41,7 +42,7 @@ const OrderPage = () => {
     const updatedCart = cart.map((item) =>
       (item.id || item._id) === productId
         ? { ...item, quantity: item.quantity - 1 }
-        : item,
+        : item
     );
     updateCartState(updatedCart);
   };
@@ -49,14 +50,14 @@ const OrderPage = () => {
   // 3. Fungsi Hapus Item dari Keranjang
   const handleRemoveItem = (productId) => {
     const updatedCart = cart.filter(
-      (item) => (item.id || item._id) !== productId,
+      (item) => (item.id || item._id) !== productId
     );
     updateCartState(updatedCart);
   };
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0,
+    0
   );
   const balanceDue = Number(cashAmount) - subtotal;
 
@@ -99,7 +100,7 @@ const OrderPage = () => {
     } catch (err) {
       console.warn(
         "Backend belum merespons penuh, mengaktifkan penyimpanan lokal sementara (Mode Offline).",
-        err,
+        err
       );
       setInvoice({
         ...payload,
@@ -287,8 +288,8 @@ const OrderPage = () => {
             <div className="border-b border-dashed border-slate-300 my-2"></div>
             <div className="space-y-0.5">
               <p>ID Transaksi : {invoice.id}</p>
-              <p>Pelanggan : {invoice.customerName}</p>
-              <p>Tanggal : {invoice.date}</p>
+              <p>Pelanggan   : {invoice.customerName}</p>
+              <p>Tanggal     : {invoice.date}</p>
             </div>
             <div className="border-b border-dashed border-slate-300 my-2"></div>
             <div className="space-y-1.5">
