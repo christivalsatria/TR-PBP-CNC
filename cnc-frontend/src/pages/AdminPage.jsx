@@ -10,7 +10,7 @@ const AdminPage = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🟢 State Khusus Riwayat Transaksi
+  // State Khusus Riwayat Transaksi
   const [transactions, setTransactions] = useState([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
@@ -23,12 +23,22 @@ const AdminPage = () => {
   const [category, setCategory] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
+  // Helper untuk memastikan nilai input angka tidak minus
+  const handlePositiveNumber = (value, setter) => {
+    if (value === "") {
+      setter("");
+      return;
+    }
+    const numValue = Math.max(0, Number(value));
+    setter(numValue);
+  };
+
   // Efek untuk mendeteksi rute aktif
   useEffect(() => {
     if (location.pathname === "/admin/daftar") {
       fetchProducts();
     } else if (location.pathname === "/admin/history") {
-      fetchTransactions(); // 🟢 Ambil data transaksi saat rute /admin/history aktif
+      fetchTransactions();
     }
 
     if (location.pathname === "/admin/master" && location.state?.editProduct) {
@@ -56,11 +66,9 @@ const AdminPage = () => {
     }
   };
 
-  // 🟢 Fungsi Ambil Data Riwayat Transaksi dari Server
   const fetchTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      // Sesuaikan endpoint backend kamu jika berbeda (misal: /orders atau /transactions)
       const response = await api.get("/transactions");
       setTransactions(response.data?.data || response.data || []);
     } catch (error) {
@@ -83,8 +91,15 @@ const AdminPage = () => {
   // HANDLER SUBMIT (Bisa Tambah Baru atau Update Produk)
   const handleSignProduct = async (e) => {
     e.preventDefault();
-    if (!name || !price || !stock || !category) {
+    
+    if (!name || price === "" || stock === "" || !category) {
       alert("Semua field wajib diisi!");
+      return;
+    }
+
+    // Validasi Tambahan: Mencegah nilai minus saat submit
+    if (Number(price) < 0 || Number(stock) < 0) {
+      alert("Harga dan stok tidak boleh kurang dari 0!");
       return;
     }
 
@@ -209,25 +224,36 @@ const AdminPage = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              {/* INPUT HARGA (Ditolak Minus) */}
               <div>
                 <label className="block text-sm font-bold text-[#713f27] mb-1">Harga</label>
                 <input
                   type="number"
+                  min="0"
                   placeholder="Rp"
                   value={price}
-                  onChange={(e) => setPrice(e.target.value)}
+                  onChange={(e) => handlePositiveNumber(e.target.value, setPrice)}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e") e.preventDefault();
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white outline-none focus:border-[#8C5A3C] transition shadow-sm"
                 />
               </div>
+
+              {/* INPUT STOK (Ditolak Minus) */}
               <div>
                 <label className="block text-sm font-bold text-[#713f27] mb-1">
                   {isEdit ? "Sesuaikan Stok" : "Stok Awal"}
                 </label>
                 <input
                   type="number"
+                  min="0"
                   placeholder="Pcs"
                   value={stock}
-                  onChange={(e) => setStock(e.target.value)}
+                  onChange={(e) => handlePositiveNumber(e.target.value, setStock)}
+                  onKeyDown={(e) => {
+                    if (e.key === "-" || e.key === "e") e.preventDefault();
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 bg-white outline-none focus:border-[#8C5A3C] transition shadow-sm"
                 />
               </div>
@@ -348,7 +374,7 @@ const AdminPage = () => {
         </div>
       )}
 
-      {/* 🟢 CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history) */}
+      {/* CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history) */}
       {location.pathname === "/admin/history" && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-6">
