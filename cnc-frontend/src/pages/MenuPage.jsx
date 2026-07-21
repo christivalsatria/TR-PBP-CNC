@@ -6,9 +6,13 @@ const MenuPage = () => {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("Semua");
   const [isLoading, setIsLoading] = useState(true);
+  const [cart, setCart] = useState([]); // State keranjang internal agar UI badge ter-update secara real-time
 
   useEffect(() => {
     fetchProducts();
+    // Inisialisasi state keranjang dari localStorage
+    const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+    setCart(savedCart);
   }, []);
 
   const fetchProducts = async () => {
@@ -75,9 +79,10 @@ const MenuPage = () => {
 
   const handleAddToOrder = (product) => {
     const currentCart = JSON.parse(localStorage.getItem("cart") || "[]");
-    // Menghandle _id dari MongoDB Atlas/Compass atau id dari data lokal biasa
-    const productId = product._id || product.id; 
-    const targetIndex = currentCart.findIndex((item) => (item._id || item.id) === productId);
+    const productId = product._id || product.id;
+    const targetIndex = currentCart.findIndex(
+      (item) => (item._id || item.id) === productId,
+    );
 
     if (targetIndex > -1) {
       currentCart[targetIndex].quantity += 1;
@@ -85,8 +90,15 @@ const MenuPage = () => {
       currentCart.push({ ...product, id: productId, quantity: 1 });
     }
 
+    // Simpan ke localStorage dan perbarui state keranjang
     localStorage.setItem("cart", JSON.stringify(currentCart));
-    alert(`${product.name} dimasukkan ke daftar pesanan sementara.`);
+    setCart([...currentCart]);
+  };
+
+  // Helper untuk menghitung total kuantitas suatu produk di keranjang
+  const getProductQuantityInCart = (productId) => {
+    const item = cart.find((i) => (i._id || i.id) === productId);
+    return item ? item.quantity : 0;
   };
 
   const displayProducts = products.filter((product) => {
@@ -136,38 +148,53 @@ const MenuPage = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {displayProducts.map((product) => (
-            <div
-              key={product._id || product.id}
-              className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all border border-slate-100 flex flex-col"
-            >
-              <img
-                src={
-                  product.image && product.image.startsWith("/uploads")
-                    ? `http://localhost:5000${product.image}`
-                    : product.image
-                }
-                alt={product.name}
-                className="w-full h-44 object-cover bg-slate-50"
-              />
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div>
-                  <h3 className="font-bold text-slate-800 text-base line-clamp-1">
-                    {product.name}
-                  </h3>
-                  <p className="text-[#8C5A3C] font-bold text-sm mt-0.5">
-                    Rp {product.price.toLocaleString("id-ID")}
-                  </p>
+          {displayProducts.map((product) => {
+            const productId = product._id || product.id;
+            const quantityInCart = getProductQuantityInCart(productId);
+
+            return (
+              <div
+                key={productId}
+                className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all border border-slate-100 flex flex-col relative"
+              >
+                {/* BADGE POJOK KANAN ATAS CARD */}
+                {quantityInCart > 0 && (
+                  <div className="absolute top-3 right-3 z-10 bg-[#8C5A3C] text-white text-xs font-black w-7 h-7 rounded-full flex items-center justify-center shadow-md border-2 border-white animate-in zoom-in duration-150">
+                    {quantityInCart}
+                  </div>
+                )}
+
+                <div className="relative overflow-hidden">
+                  <img
+                    src={
+                      product.image && product.image.startsWith("/uploads")
+                        ? `http://localhost:5000${product.image}`
+                        : product.image
+                    }
+                    alt={product.name}
+                    className="w-full h-44 object-cover bg-slate-50"
+                  />
                 </div>
-                <button
-                  onClick={() => handleAddToOrder(product)}
-                  className="w-full bg-[#8C5A3C] hover:bg-[#734428] text-white py-2 rounded-xl text-xs font-bold transition"
-                >
-                  + Tambah Pesanan
-                </button>
+
+                <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-base line-clamp-1">
+                      {product.name}
+                    </h3>
+                    <p className="text-[#8C5A3C] font-bold text-sm mt-0.5">
+                      Rp {product.price.toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleAddToOrder(product)}
+                    className="w-full bg-[#8C5A3C] hover:bg-[#734428] text-white py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1"
+                  >
+                    + Tambah Pesanan
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
