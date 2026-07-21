@@ -12,13 +12,13 @@ const api = axios.create({
     },
 });
 
+// Interceptor: Otomatis menyisipkan token dari sessionStorage ke header Authorization
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
 
         if (token) {
             config.headers = config.headers || {};
-
             config.headers.Authorization = `Bearer ${token}`;
         }
 

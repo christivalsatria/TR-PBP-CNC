@@ -1,13 +1,17 @@
-import { Navigate, Outlet } from 'react-router';
+import React from "react";
+import { Navigate, Outlet } from "react-router";
 
 const ProtectedRoute = () => {
-    const token = localStorage.getItem('token');
+  // Ubah localStorage menjadi sessionStorage
+  const token = sessionStorage.getItem("token");
 
-    if (!token) {
-        return <Navigate to="/login" replace/>        
-    }
+  // Jika token tidak ada, tendang user kembali ke halaman login
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
 
-    return <Outlet />;
+  // Jika token ada, izinkan mengakses halaman di dalamnya
+  return <Outlet />;
 };
 
 export default ProtectedRoute;

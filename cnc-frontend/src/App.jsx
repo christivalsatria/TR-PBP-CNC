@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AppLayout from "./layouts/AppLayout";
@@ -9,6 +10,24 @@ import HistoryPage from "./pages/HistoryPage";
 import AdminPage from "./pages/AdminPage";
 
 const App = () => {
+  // 🟢 TARUH DENGARAN STORAGE DI SINI
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      // Cek jika token atau role ditimpa oleh tab sebelah
+      if (e.key === "token" || e.key === "role") {
+        alert("🚨 Sesi login berubah di tab lain! Halaman akan dimuat ulang.");
+        window.location.reload(); // Paksa reload agar state membaca localStorage terbaru
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+
+    // Clean up event listener saat komponen unmount
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
+
   return (
     <Routes>
       {/* Public Route */}

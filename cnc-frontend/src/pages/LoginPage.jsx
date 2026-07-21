@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
-
 import api from '../services/api';
 
 const LoginPage = () => {
@@ -25,40 +24,35 @@ const LoginPage = () => {
     try {
       const response = await api.post('/auth/login', { username, password });
       
-      // Ambil token dan user objek dari segala kemungkinan bentuk response Axios
       const token = response?.data?.token || response?.token;
       const userObj = response?.data?.user || response?.user;
-      const roleMentah = userObj?.role || response?.data?.role || response?.role;
 
-      if (token) {
-        localStorage.setItem('token', token);
-        const role = roleMentah ? String(roleMentah).trim() : '';
-        localStorage.setItem('role', role);
+      if (token && userObj) {
+        // 🟢 GUNAKAN sessionStorage AGAR TIAP TAB MEMILIKI SESI SENDIRI
+        sessionStorage.clear();
 
-        console.log(`Login sukses! Role yang terdeteksi: "${role}"`);
+        sessionStorage.setItem('token', token);
+        sessionStorage.setItem('role', userObj.role);
+        sessionStorage.setItem('user', JSON.stringify(userObj));
 
-        // 🟢 LANGKAH KRUSIAL: Matikan loading terlebih dahulu agar elemen form tidak terkunci saat redirect
         setLoading(false);
 
-        // Pengalihan rute berdasarkan role murni
-        if (role.toLowerCase() === 'admin') {
-          console.log('Mengarahkan ke Dashboard Admin...');
+        // Arahkan berdasarkan role dari backend
+        if (userObj.role.toLowerCase() === 'admin') {
           navigate('/admin');
         } else {
-          console.log('Mengarahkan ke Menu Kasir...');
           navigate('/menu');
         }
         
-        return; // Hentikan fungsi di sini agar tidak masuk ke blok finally
+        return; 
       } else {
-        setError('Login berhasil, namun token gagal dikirim oleh server.');
+        setError('Login berhasil, namun data token/user tidak lengkap dari server.');
       }
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.message || 'Gagal tersambung ke server. Periksa koneksi atau data akun Anda.';
       setError(msg);
     } finally {
-      // Hanya akan berjalan jika proses try di atas gagal/melempar error
       setLoading(false);
     }
   };
@@ -117,7 +111,6 @@ const LoginPage = () => {
           >
             {loading ? 'Memproses...' : 'Login'}
           </button>
-          
         </form>
       </div>
     </div>
