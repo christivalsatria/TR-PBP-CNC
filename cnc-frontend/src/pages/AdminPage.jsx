@@ -10,6 +10,10 @@ const AdminPage = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 🟢 State Khusus Riwayat Transaksi
+  const [transactions, setTransactions] = useState([]);
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
+
   // State Form Tambah & Edit Produk (Master Produk)
   const [isEdit, setIsEdit] = useState(false);
   const [productId, setProductId] = useState(null);
@@ -19,10 +23,14 @@ const AdminPage = () => {
   const [category, setCategory] = useState("");
   const [imageFile, setImageFile] = useState(null);
 
-  // Efek untuk mendeteksi jika ada data lemparan untuk EDIT dari halaman daftar produk
+  // Efek untuk mendeteksi rute aktif
   useEffect(() => {
-    fetchProducts();
-    
+    if (location.pathname === "/admin/daftar") {
+      fetchProducts();
+    } else if (location.pathname === "/admin/history") {
+      fetchTransactions(); // 🟢 Ambil data transaksi saat rute /admin/history aktif
+    }
+
     if (location.pathname === "/admin/master" && location.state?.editProduct) {
       const prod = location.state.editProduct;
       setIsEdit(true);
@@ -32,7 +40,6 @@ const AdminPage = () => {
       setStock(prod.stock);
       setCategory(prod.category);
     } else if (location.pathname === "/admin/master") {
-      // Jika masuk ke master biasa tanpa state edit, reset form ke kondisi tambah baru
       resetForm();
     }
   }, [location]);
@@ -46,6 +53,20 @@ const AdminPage = () => {
       console.error("Gagal mengambil data produk:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // 🟢 Fungsi Ambil Data Riwayat Transaksi dari Server
+  const fetchTransactions = async () => {
+    try {
+      setIsLoadingTransactions(true);
+      // Sesuaikan endpoint backend kamu jika berbeda (misal: /orders atau /transactions)
+      const response = await api.get("/transactions");
+      setTransactions(response.data?.data || response.data || []);
+    } catch (error) {
+      console.error("Gagal mengambil riwayat transaksi:", error);
+    } finally {
+      setIsLoadingTransactions(false);
     }
   };
 
@@ -67,7 +88,6 @@ const AdminPage = () => {
       return;
     }
 
-    // Notifikasi Konfirmasi sebelum Submit Aksi
     const konfirmasi = window.confirm(
       isEdit 
         ? `Apakah Anda yakin ingin memperbarui data menu "${name}"?` 
@@ -86,13 +106,11 @@ const AdminPage = () => {
       }
 
       if (isEdit) {
-        // Jalankan Aksi UPDATE (PUT) ke backend
         await api.put(`/products/${productId}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
         alert(`Berhasil! Data menu "${name}" telah diperbarui.`);
       } else {
-        // Jalankan Aksi TAMBAH BARU (POST) ke backend
         await api.post("/products", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
@@ -110,13 +128,11 @@ const AdminPage = () => {
 
   // HANDLER ACTION: TOMBOL EDIT DIKLIK
   const handleEditClick = (prod) => {
-    // Alihkan rute ke halaman master sambil melempar data produk di dalam state rute
     navigate("/admin/master", { state: { editProduct: prod } });
   };
 
   // HANDLER ACTION: TOMBOL DELETE DIKLIK
   const handleDeleteClick = async (id, namaMenu) => {
-    // 🟢 Perbaikan: Hapus spasi di antara konfirmasi dan Hapus
     const konfirmasiHapus = window.confirm(
       `🚨 PERINGATAN!\n\nApakah Anda yakin ingin MENGHAPUS menu "${namaMenu}" secara permanen dari database?`
     );
@@ -125,7 +141,7 @@ const AdminPage = () => {
     try {
       await api.delete(`/products/${id}`);
       alert(`Sukses! Menu "${namaMenu}" telah dihapus secara permanen.`);
-      fetchProducts(); // Segarkan isi tabel data stok
+      fetchProducts();
     } catch (error) {
       console.error("Gagal menghapus produk:", error);
       alert("Gagal menghapus produk dari server.");
@@ -276,7 +292,7 @@ const AdminPage = () => {
                     <th className="p-4 text-sm">Kategori</th>
                     <th className="p-4 text-sm text-center">Sisa Stok</th>
                     <th className="p-4 text-sm">Harga Jual</th>
-                    <th className="p-4 text-sm text-center">Aksi</th> {/* Tambah kolom aksi */}
+                    <th className="p-4 text-sm text-center">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -307,7 +323,6 @@ const AdminPage = () => {
                       <td className="p-4 text-sm font-bold text-[#8C5A3C]">
                         Rp {prod.price ? prod.price.toLocaleString("id-ID") : 0}
                       </td>
-                      {/* 🛠️ TOMBOL UPDATE DAN DELETE */}
                       <td className="p-4 text-sm text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -323,6 +338,72 @@ const AdminPage = () => {
                             Hapus
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 🟢 CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history) */}
+      {location.pathname === "/admin/history" && (
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-[#713f27] flex items-center gap-2">
+              📜 Riwayat Transaksi Penjualan
+            </h2>
+            <button
+              onClick={fetchTransactions}
+              className="bg-[#8C5A3C] hover:bg-[#713f27] text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition shadow-sm"
+            >
+              🔄 Refresh
+            </button>
+          </div>
+
+          {isLoadingTransactions ? (
+            <div className="text-center py-12 text-[#8C5A3C] font-medium animate-pulse">
+              Memuat data transaksi dari server...
+            </div>
+          ) : transactions.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 text-sm">
+              Belum ada riwayat transaksi yang tercatat.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#FAF6F0] text-[#713f27] font-bold border-b border-slate-200">
+                    <th className="p-4 text-sm">No</th>
+                    <th className="p-4 text-sm">ID Transaksi</th>
+                    <th className="p-4 text-sm">Tanggal & Waktu</th>
+                    <th className="p-4 text-sm">Kasir</th>
+                    <th className="p-4 text-sm">Total Belanja</th>
+                    <th className="p-4 text-sm text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-sm">
+                  {transactions.map((trx, index) => (
+                    <tr key={trx._id || trx.id || index} className="hover:bg-slate-50/50 transition">
+                      <td className="p-4 font-medium text-slate-500">{index + 1}</td>
+                      <td className="p-4 font-mono text-xs font-semibold text-[#8C5A3C]">
+                        #{trx._id?.slice(-6) || trx.id || index + 100}
+                      </td>
+                      <td className="p-4 text-slate-600">
+                        {trx.createdAt ? new Date(trx.createdAt).toLocaleString("id-ID") : "-"}
+                      </td>
+                      <td className="p-4 font-medium text-slate-700">
+                        {trx.cashierName || trx.user?.username || "Kasir"}
+                      </td>
+                      <td className="p-4 font-bold text-[#8C5A3C]">
+                        Rp {(trx.totalAmount || trx.total || 0).toLocaleString("id-ID")}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-semibold">
+                          Selesai
+                        </span>
                       </td>
                     </tr>
                   ))}

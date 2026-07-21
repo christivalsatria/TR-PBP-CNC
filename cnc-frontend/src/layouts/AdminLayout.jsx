@@ -9,6 +9,9 @@ const AdminLayout = () => {
   const [userData, setUserData] = useState({ username: "Admin", role: "Admin" });
 
   useEffect(() => {
+    // 🟢 Ubah judul tab browser secara dinamis
+    document.title = "CNC - Admin";
+
     // Ambil data dari sessionStorage
     const savedUser = sessionStorage.getItem("user");
     const savedRole = sessionStorage.getItem("role");
@@ -34,10 +37,12 @@ const AdminLayout = () => {
     }
   };
 
+  // 🟢 Navigation baris admin mencakup Riwayat Transaksi
   const navigation = [
     { name: "Rekap Mingguan", path: "/admin", icon: "📊" },
     { name: "Master Produk", path: "/admin/master", icon: "➕" },
     { name: "Daftar Produk", path: "/admin/daftar", icon: "📦" },
+    { name: "Riwayat Transaksi", path: "/admin/history", icon: "📜" },
   ];
 
   return (
