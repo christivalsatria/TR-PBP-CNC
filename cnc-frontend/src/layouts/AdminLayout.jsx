@@ -54,7 +54,7 @@ const AdminLayout = () => {
             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center font-bold text-[#8C5A3C]">
               CNC
             </div>
-            <span className="font-bold text-lg tracking-wider">CNC ADMIN</span>
+            <span className="font-bold text-lg tracking-wider">ADMIN</span>
           </div>
 
           <nav className="mt-6 px-3 space-y-1">

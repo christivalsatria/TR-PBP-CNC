@@ -44,7 +44,7 @@ const AppLayout = () => {
             <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center font-bold text-[#713f27]">
               CNC
             </div>
-            <span className="font-bold text-lg tracking-wider">CNC KASIR</span>
+            <span className="font-bold text-lg tracking-wider">KASIR</span>
           </div>
 
           <nav className="mt-6 px-3 space-y-1">
