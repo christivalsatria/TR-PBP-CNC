@@ -2,6 +2,44 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import api from "../services/api";
 
+// Helper untuk menghitung nomor minggu (ISO Week Number)
+const getWeekNumber = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const weekNo = Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
+  return { year: d.getFullYear(), week: weekNo };
+};
+
+// Helper untuk mengelompokkan transaksi berdasarkan minggu & tahun
+const calculateWeeklySummary = (transactionsList) => {
+  const summaryMap = {};
+
+  transactionsList.forEach((tx) => {
+    if (!tx.createdAt) return;
+    const { year, week } = getWeekNumber(tx.createdAt);
+    const key = `${year}-W${week}`;
+
+    if (!summaryMap[key]) {
+      summaryMap[key] = {
+        year,
+        week,
+        totalTransactions: 0,
+        totalOmzet: 0,
+      };
+    }
+
+    summaryMap[key].totalTransactions += 1;
+    summaryMap[key].totalOmzet += tx.totalAmount || 0;
+  });
+
+  return Object.values(summaryMap).sort((a, b) => {
+    if (b.year !== a.year) return b.year - a.year;
+    return b.week - a.week;
+  });
+};
+
 const AdminPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -10,7 +48,7 @@ const AdminPage = () => {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State Khusus Riwayat Transaksi
+  // State Khusus Riwayat Transaksi & Rekap
   const [transactions, setTransactions] = useState([]);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
 
@@ -37,7 +75,11 @@ const AdminPage = () => {
   useEffect(() => {
     if (location.pathname === "/admin/daftar") {
       fetchProducts();
-    } else if (location.pathname === "/admin/history") {
+    } else if (
+      location.pathname === "/admin/history" ||
+      location.pathname === "/admin"
+    ) {
+      // Ambil riwayat transaksi baik di halaman Rekap maupun Halaman History
       fetchTransactions();
     }
 
@@ -66,7 +108,6 @@ const AdminPage = () => {
     }
   };
 
-  // Disesuaikan dengan endpoint kasir: /transactions/history
   const fetchTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
@@ -92,21 +133,20 @@ const AdminPage = () => {
   // HANDLER SUBMIT (Bisa Tambah Baru atau Update Produk)
   const handleSignProduct = async (e) => {
     e.preventDefault();
-    
+
     if (!name || price === "" || stock === "" || !category) {
       alert("Semua field wajib diisi!");
       return;
     }
 
-    // Validasi Tambahan: Mencegah nilai minus saat submit
     if (Number(price) < 0 || Number(stock) < 0) {
       alert("Harga dan stok tidak boleh kurang dari 0!");
       return;
     }
 
     const konfirmasi = window.confirm(
-      isEdit 
-        ? `Apakah Anda yakin ingin memperbarui data menu "${name}"?` 
+      isEdit
+        ? `Apakah Anda yakin ingin memperbarui data menu "${name}"?`
         : `Apakah Anda yakin ingin menambahkan menu baru "${name}"?`
     );
     if (!konfirmasi) return;
@@ -142,12 +182,10 @@ const AdminPage = () => {
     }
   };
 
-  // HANDLER ACTION: TOMBOL EDIT DIKLIK
   const handleEditClick = (prod) => {
     navigate("/admin/master", { state: { editProduct: prod } });
   };
 
-  // HANDLER ACTION: TOMBOL DELETE DIKLIK
   const handleDeleteClick = async (id, namaMenu) => {
     const konfirmasiHapus = window.confirm(
       `🚨 PERINGATAN!\n\nApakah Anda yakin ingin MENGHAPUS menu "${namaMenu}" secara permanen dari database?`
@@ -164,38 +202,73 @@ const AdminPage = () => {
     }
   };
 
+  // Kalkulasi rekap mingguan secara langsung
+  const weeklySummary = calculateWeeklySummary(transactions);
+
   return (
     <>
-      {/* CONDITIONAL CONTENT 1: REKAP MINGGUAN (/admin) */}
+      {/* 🟢 CONDITIONAL CONTENT 1: REKAP MINGGUAN DINAMIS (/admin) */}
       {location.pathname === "/admin" && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <h2 className="text-xl font-bold text-[#713f27] mb-5 flex items-center gap-2">
-            📊 Weekly Summary (Rekap Mingguan)
-          </h2>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-[#FAF6F0] text-[#713f27] font-bold border-b border-slate-200">
-                  <th className="p-4 text-sm">Tahun</th>
-                  <th className="p-4 text-sm">Minggu Ke-</th>
-                  <th className="p-4 text-sm">Total Transaksi</th>
-                  <th className="p-4 text-sm">Total Pendapatan (Omzet)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-slate-100 hover:bg-slate-50/50 transition">
-                  <td className="p-4 text-sm font-medium">2026</td>
-                  <td className="p-4 text-sm text-slate-600">Minggu ke-28</td>
-                  <td className="p-4 text-sm text-slate-600">4 Transaksi</td>
-                  <td className="p-4 text-sm font-bold text-[#8C5A3C]">Rp 228,000</td>
-                </tr>
-              </tbody>
-            </table>
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-xl font-bold text-[#713f27] flex items-center gap-2">
+              📊 Weekly Summary (Rekap Mingguan)
+            </h2>
+            <button
+              onClick={fetchTransactions}
+              className="bg-[#8C5A3C] hover:bg-[#713f27] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition shadow-sm"
+            >
+              🔄 Refresh Data
+            </button>
           </div>
+
+          {isLoadingTransactions ? (
+            <div className="text-center py-12 text-[#8C5A3C] font-medium animate-pulse">
+              Menghitung rekap transaksi mingguan...
+            </div>
+          ) : weeklySummary.length === 0 ? (
+            <div className="text-center py-12 text-slate-400 text-sm">
+              Belum ada data transaksi yang dapat direkap.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-slate-200">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#FAF6F0] text-[#713f27] font-bold border-b border-slate-200">
+                    <th className="p-4 text-sm">Tahun</th>
+                    <th className="p-4 text-sm">Minggu Ke-</th>
+                    <th className="p-4 text-sm">Total Transaksi</th>
+                    <th className="p-4 text-sm">Total Pendapatan (Omzet)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {weeklySummary.map((item, idx) => (
+                    <tr
+                      key={idx}
+                      className="border-b border-slate-100 hover:bg-slate-50/50 transition"
+                    >
+                      <td className="p-4 text-sm font-medium text-slate-800">
+                        {item.year}
+                      </td>
+                      <td className="p-4 text-sm text-slate-600">
+                        Minggu ke-{item.week}
+                      </td>
+                      <td className="p-4 text-sm text-slate-600 font-semibold">
+                        {item.totalTransactions} Transaksi
+                      </td>
+                      <td className="p-4 text-sm font-bold text-[#8C5A3C]">
+                        Rp {item.totalOmzet.toLocaleString("id-ID")}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
-      {/* CONDITIONAL CONTENT 2: MASTER PRODUK (/admin/master - Handle Tambah & Edit) */}
+      {/* CONDITIONAL CONTENT 2: MASTER PRODUK (/admin/master) */}
       {location.pathname === "/admin/master" && (
         <div className="max-w-2xl bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <div className="flex items-center justify-between mb-6">
@@ -203,8 +276,11 @@ const AdminPage = () => {
               {isEdit ? "✏️ Edit Produk Menu" : "➕ Master Produk (Tambah Menu Baru)"}
             </h2>
             {isEdit && (
-              <button 
-                onClick={() => { resetForm(); navigate("/admin/master"); }}
+              <button
+                onClick={() => {
+                  resetForm();
+                  navigate("/admin/master");
+                }}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold rounded-lg transition"
               >
                 Batal Edit
@@ -214,7 +290,9 @@ const AdminPage = () => {
 
           <form onSubmit={handleSignProduct} className="space-y-4">
             <div>
-              <label className="block text-sm font-bold text-[#713f27] mb-1">Nama Produk</label>
+              <label className="block text-sm font-bold text-[#713f27] mb-1">
+                Nama Produk
+              </label>
               <input
                 type="text"
                 placeholder="Masukkan nama produk"
@@ -225,9 +303,10 @@ const AdminPage = () => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {/* INPUT HARGA (Ditolak Minus) */}
               <div>
-                <label className="block text-sm font-bold text-[#713f27] mb-1">Harga</label>
+                <label className="block text-sm font-bold text-[#713f27] mb-1">
+                  Harga
+                </label>
                 <input
                   type="number"
                   min="0"
@@ -241,7 +320,6 @@ const AdminPage = () => {
                 />
               </div>
 
-              {/* INPUT STOK (Ditolak Minus) */}
               <div>
                 <label className="block text-sm font-bold text-[#713f27] mb-1">
                   {isEdit ? "Sesuaikan Stok" : "Stok Awal"}
@@ -261,7 +339,9 @@ const AdminPage = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-[#713f27] mb-1">Kategori</label>
+              <label className="block text-sm font-bold text-[#713f27] mb-1">
+                Kategori
+              </label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
@@ -275,7 +355,12 @@ const AdminPage = () => {
 
             <div>
               <label className="block text-sm font-bold text-[#713f27] mb-1">
-                Foto Produk {isEdit && <span className="text-xs font-normal text-slate-400">(Biarkan kosong jika tidak ingin ganti foto)</span>}
+                Foto Produk{" "}
+                {isEdit && (
+                  <span className="text-xs font-normal text-slate-400">
+                    (Biarkan kosong jika tidak ingin ganti foto)
+                  </span>
+                )}
               </label>
               <input
                 type="file"
@@ -324,29 +409,39 @@ const AdminPage = () => {
                 </thead>
                 <tbody>
                   {products.map((prod) => (
-                    <tr key={prod._id} className="border-b border-slate-100 hover:bg-slate-50/50 transition">
+                    <tr
+                      key={prod._id}
+                      className="border-b border-slate-100 hover:bg-slate-50/50 transition"
+                    >
                       <td className="p-4">
                         <img
                           src={
                             prod.image && prod.image.startsWith("/uploads")
                               ? `http://localhost:5000${prod.image}`
-                              : prod.image || "https://placehold.co/45x45?text=No+Img"
+                              : prod.image ||
+                                "https://placehold.co/45x45?text=No+Img"
                           }
                           alt={prod.name}
                           className="w-12 h-12 rounded-xl object-cover bg-slate-100 shadow-sm"
                         />
                       </td>
-                      <td className="p-4 text-sm font-semibold text-slate-800">{prod.name}</td>
+                      <td className="p-4 text-sm font-semibold text-slate-800">
+                        {prod.name}
+                      </td>
                       <td className="p-4 text-sm">
-                        <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                          prod.category === "Makanan" 
-                            ? "bg-amber-100 text-amber-800" 
-                            : "bg-orange-100 text-orange-800"
-                        }`}>
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                            prod.category === "Makanan"
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-orange-100 text-orange-800"
+                          }`}
+                        >
                           {prod.category}
                         </span>
                       </td>
-                      <td className="p-4 text-sm font-bold text-center text-slate-700">{prod.stock} Pcs</td>
+                      <td className="p-4 text-sm font-bold text-center text-slate-700">
+                        {prod.stock} Pcs
+                      </td>
                       <td className="p-4 text-sm font-bold text-[#8C5A3C]">
                         Rp {prod.price ? prod.price.toLocaleString("id-ID") : 0}
                       </td>
@@ -375,7 +470,7 @@ const AdminPage = () => {
         </div>
       )}
 
-      {/* CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history - Disesuaikan dengan Kasir) */}
+      {/* CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history) */}
       {location.pathname === "/admin/history" && (
         <div className="space-y-6 max-w-xl">
           <div className="flex justify-between items-center">
@@ -391,9 +486,13 @@ const AdminPage = () => {
           </div>
 
           {isLoadingTransactions ? (
-            <p className="text-sm text-slate-500 font-medium">Memuat riwayat...</p>
+            <p className="text-sm text-slate-500 font-medium">
+              Memuat riwayat...
+            </p>
           ) : transactions.length === 0 ? (
-            <p className="text-sm text-slate-400">Belum ada riwayat transaksi yang tercatat.</p>
+            <p className="text-sm text-slate-400">
+              Belum ada riwayat transaksi yang tercatat.
+            </p>
           ) : (
             <div className="space-y-3">
               {transactions.map((tx) => (
