@@ -66,11 +66,12 @@ const AdminPage = () => {
     }
   };
 
+  // Disesuaikan dengan endpoint kasir: /transactions/history
   const fetchTransactions = async () => {
     try {
       setIsLoadingTransactions(true);
-      const response = await api.get("/transactions");
-      setTransactions(response.data?.data || response.data || []);
+      const response = await api.get("/transactions/history");
+      setTransactions(response.data);
     } catch (error) {
       console.error("Gagal mengambil riwayat transaksi:", error);
     } finally {
@@ -374,67 +375,60 @@ const AdminPage = () => {
         </div>
       )}
 
-      {/* CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history) */}
+      {/* CONDITIONAL CONTENT 4: RIWAYAT TRANSAKSI (/admin/history - Disesuaikan dengan Kasir) */}
       {location.pathname === "/admin/history" && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-[#713f27] flex items-center gap-2">
-              📜 Riwayat Transaksi Penjualan
+        <div className="space-y-6 max-w-xl">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-[#8C5A3C] flex items-center gap-2">
+              ⏳ RIWAYAT TRANSAKSI
             </h2>
             <button
               onClick={fetchTransactions}
-              className="bg-[#8C5A3C] hover:bg-[#713f27] text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold transition shadow-sm"
+              className="bg-[#8C5A3C] hover:bg-[#713f27] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition shadow-sm"
             >
               🔄 Refresh
             </button>
           </div>
 
           {isLoadingTransactions ? (
-            <div className="text-center py-12 text-[#8C5A3C] font-medium animate-pulse">
-              Memuat data transaksi dari server...
-            </div>
+            <p className="text-sm text-slate-500 font-medium">Memuat riwayat...</p>
           ) : transactions.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-sm">
-              Belum ada riwayat transaksi yang tercatat.
-            </div>
+            <p className="text-sm text-slate-400">Belum ada riwayat transaksi yang tercatat.</p>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#FAF6F0] text-[#713f27] font-bold border-b border-slate-200">
-                    <th className="p-4 text-sm">No</th>
-                    <th className="p-4 text-sm">ID Transaksi</th>
-                    <th className="p-4 text-sm">Tanggal & Waktu</th>
-                    <th className="p-4 text-sm">Kasir</th>
-                    <th className="p-4 text-sm">Total Belanja</th>
-                    <th className="p-4 text-sm text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
-                  {transactions.map((trx, index) => (
-                    <tr key={trx._id || trx.id || index} className="hover:bg-slate-50/50 transition">
-                      <td className="p-4 font-medium text-slate-500">{index + 1}</td>
-                      <td className="p-4 font-mono text-xs font-semibold text-[#8C5A3C]">
-                        #{trx._id?.slice(-6) || trx.id || index + 100}
-                      </td>
-                      <td className="p-4 text-slate-600">
-                        {trx.createdAt ? new Date(trx.createdAt).toLocaleString("id-ID") : "-"}
-                      </td>
-                      <td className="p-4 font-medium text-slate-700">
-                        {trx.cashierName || trx.user?.username || "Kasir"}
-                      </td>
-                      <td className="p-4 font-bold text-[#8C5A3C]">
-                        Rp {(trx.totalAmount || trx.total || 0).toLocaleString("id-ID")}
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-semibold">
-                          Selesai
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              {transactions.map((tx) => (
+                <div
+                  key={tx._id || tx.transactionId}
+                  className="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition"
+                >
+                  <div>
+                    <p className="font-bold text-slate-800 text-sm">
+                      Transaksi {tx.transactionId}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Pelanggan: {tx.customerName} • Kasir: {tx.cashierName}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {new Date(tx.createdAt).toLocaleDateString("id-ID", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}{" "}
+                      WIB
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-extrabold text-[#8C5A3C] text-base block">
+                      Rp {tx.totalAmount?.toLocaleString("id-ID")}
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      {tx.items?.length || 0} item
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
