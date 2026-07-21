@@ -10,7 +10,6 @@ const MenuPage = () => {
 
   useEffect(() => {
     fetchProducts();
-    // Inisialisasi state keranjang dari localStorage
     const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(savedCart);
   }, []);
@@ -21,7 +20,6 @@ const MenuPage = () => {
       setProducts(response.data);
     } catch (error) {
       console.error("Gagal memuat produk dari API, memuat data lokal:", error);
-      // Fallback produk sesuai visual mockup prototipe halaman menu CNC
       setProducts([
         {
           id: "1",
@@ -90,12 +88,10 @@ const MenuPage = () => {
       currentCart.push({ ...product, id: productId, quantity: 1 });
     }
 
-    // Simpan ke localStorage dan perbarui state keranjang
     localStorage.setItem("cart", JSON.stringify(currentCart));
     setCart([...currentCart]);
   };
 
-  // Helper untuk menghitung total kuantitas suatu produk di keranjang
   const getProductQuantityInCart = (productId) => {
     const item = cart.find((i) => (i._id || i.id) === productId);
     return item ? item.quantity : 0;
@@ -112,7 +108,6 @@ const MenuPage = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Kontrol */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="w-full md:w-96">
           <input
@@ -141,7 +136,6 @@ const MenuPage = () => {
         </div>
       </div>
 
-      {/* Grid Katalog */}
       {isLoading ? (
         <div className="text-center py-12 font-medium text-[#8C5A3C]">
           Menghubungkan ke server...
@@ -157,7 +151,6 @@ const MenuPage = () => {
                 key={productId}
                 className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-all border border-slate-100 flex flex-col relative"
               >
-                {/* BADGE POJOK KANAN ATAS CARD */}
                 {quantityInCart > 0 && (
                   <div className="absolute top-3 right-3 z-10 bg-[#8C5A3C] text-white text-xs font-black w-7 h-7 rounded-full flex items-center justify-center shadow-md border-2 border-white animate-in zoom-in duration-150">
                     {quantityInCart}

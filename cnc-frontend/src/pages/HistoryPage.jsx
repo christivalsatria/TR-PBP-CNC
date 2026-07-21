@@ -4,7 +4,7 @@ import api from "../services/api";
 const HistoryPage = () => {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTx, setSelectedTx] = useState(null); // State untuk menyimpan transaksi yang dipilih untuk struk
+  const [selectedTx, setSelectedTx] = useState(null);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -34,7 +34,7 @@ const HistoryPage = () => {
           {transactions.map((tx) => (
             <div
               key={tx._id || tx.transactionId}
-              onClick={() => setSelectedTx(tx)} // Set transaksi aktif saat diklik
+              onClick={() => setSelectedTx(tx)}
               className="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition cursor-pointer hover:border-[#8C5A3C]/30"
             >
               <div>
@@ -72,11 +72,9 @@ const HistoryPage = () => {
         </div>
       )}
 
-      {/* MODAL STRUK DETAIL TRANSAKSI */}
       {selectedTx && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full space-y-6 shadow-2xl relative animate-in fade-in zoom-in duration-200">
-            {/* Header Sukses */}
             <div className="text-center space-y-2">
               <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto text-xl font-bold">
                 ✓
@@ -89,8 +87,7 @@ const HistoryPage = () => {
               </p>
             </div>
 
-            {/* Tampilan Struk Fisik */}
-            <div className="bg-[#FFFDF9] border border-amber-900/10 p-5 rounded-2xl font-mono text-xs text-slate-700 space-y-3 shadow-inner">
+            <div id="printablereceipt" className="bg-[#FFFDF9] border border-amber-900/10 p-5 rounded-2xl font-mono text-xs text-slate-700 space-y-3 shadow-inner">
               <div className="text-center font-bold space-y-0.5">
                 <p className="text-sm tracking-wide">CNC CAFE & RESTO</p>
                 <p className="font-normal text-[10px] text-slate-400">
@@ -121,7 +118,6 @@ const HistoryPage = () => {
 
               <div className="border-b border-dashed border-slate-300 my-2"></div>
 
-              {/* Daftar Item Pembelian */}
               <div className="space-y-1.5">
                 {selectedTx.items?.map((item, idx) => (
                   <div key={idx} className="flex justify-between">
@@ -140,7 +136,6 @@ const HistoryPage = () => {
 
               <div className="border-b border-dashed border-slate-300 my-2"></div>
 
-              {/* Ringkasan Pembayaran */}
               <div className="space-y-1">
                 <div className="flex justify-between font-bold">
                   <span>Sub-Total</span>
@@ -161,7 +156,6 @@ const HistoryPage = () => {
               </div>
             </div>
 
-            {/* Tombol Aksi */}
             <div className="flex flex-col gap-2">
               <button
                 onClick={() => window.print()}

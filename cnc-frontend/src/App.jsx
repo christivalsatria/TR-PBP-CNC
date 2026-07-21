@@ -10,19 +10,16 @@ import HistoryPage from "./pages/HistoryPage";
 import AdminPage from "./pages/AdminPage";
 
 const App = () => {
-  // 🟢 TARUH DENGARAN STORAGE DI SINI
   useEffect(() => {
     const handleStorageChange = (e) => {
-      // Cek jika token atau role ditimpa oleh tab sebelah
       if (e.key === "token" || e.key === "role") {
         alert("🚨 Sesi login berubah di tab lain! Halaman akan dimuat ulang.");
-        window.location.reload(); // Paksa reload agar state membaca localStorage terbaru
+        window.location.reload();
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
 
-    // Clean up event listener saat komponen unmount
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
@@ -30,10 +27,8 @@ const App = () => {
 
   return (
     <Routes>
-      {/* Public Route */}
       <Route path="/login" element={<LoginPage />} />
 
-      {/* Protected Routes untuk Kasir */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Navigate to="/menu" replace />} />
@@ -43,7 +38,6 @@ const App = () => {
         </Route>
       </Route>
 
-      {/* Rute Admin: Tembak ke AdminPage yang sama untuk ketiga URL */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route path="/admin" element={<AdminPage />} />
@@ -53,7 +47,6 @@ const App = () => {
         </Route>
       </Route>
 
-      {/* Fallback */}
       <Route path="*" element={<Navigate to="/menu" replace />} />
     </Routes>
   );

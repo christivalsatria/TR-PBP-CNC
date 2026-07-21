@@ -28,7 +28,6 @@ const LoginPage = () => {
       const userObj = response?.data?.user || response?.user;
 
       if (token && userObj) {
-        // 🟢 GUNAKAN sessionStorage AGAR TIAP TAB MEMILIKI SESI SENDIRI
         sessionStorage.clear();
 
         sessionStorage.setItem('token', token);
@@ -37,7 +36,6 @@ const LoginPage = () => {
 
         setLoading(false);
 
-        // Arahkan berdasarkan role dari backend
         if (userObj.role.toLowerCase() === 'admin') {
           navigate('/admin');
         } else {
@@ -61,21 +59,18 @@ const LoginPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-[#c58d59]">
       <div className="w-full max-w-[460px] bg-[#FAF6F0] rounded-2xl p-10 flex flex-col items-center shadow-md mx-4">
         
-        {/* LOGO CNC */}
         <div className="w-32 h-32 rounded-full bg-[#713f27] flex items-center justify-center mb-8 select-none">
           <span className="text-6xl font-semibold text-[#c58d59] tracking-wide font-['Afacad']">
             CNC
           </span>
         </div>
 
-        {/* NOTIFIKASI ERROR */}
         {error && (
           <div className="w-full bg-red-100 border border-red-300 text-red-700 p-2.5 rounded-lg text-sm text-center font-medium mb-4">
             {error}
           </div>
         )}
 
-        {/* FORM LOGIN */}
         <form onSubmit={handleSubmit} className="w-full space-y-5">
           <div>
             <label className="block text-[#713f27] text-lg font-bold mb-1">

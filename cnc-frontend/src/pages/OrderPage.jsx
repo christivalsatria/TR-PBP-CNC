@@ -7,7 +7,7 @@ const OrderPage = () => {
   const [customer, setCustomer] = useState("");
   const [tableNumber, setTableNumber] = useState("");
   const [invoice, setInvoice] = useState(null);
-  const [stage, setStage] = useState(1); // 1: Ringkasan, 2: Bayar, 3: Struk Sukses
+  const [stage, setStage] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -68,7 +68,6 @@ const OrderPage = () => {
     setTableNumber("");
   };
 
-  // FUNGSI CHECKOUT DENGAN FORMAT TEPAT SESUAI EXPRESS ROUTER
   const processPaymentSubmit = async () => {
     if (Number(cashAmount) < subtotal) {
       alert("Nominal uang tunai yang dimasukkan kurang!");
@@ -80,7 +79,6 @@ const OrderPage = () => {
     const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const activeCashier = loggedUser.username || loggedUser.name || "Kasir CNC";
 
-    // Format items persis sesuai instruksi backend: [{ productId: "id", quantity: 2 }]
     const formattedItems = cart.map((item) => ({
       productId: item._id || item.id,
       quantity: Number(item.quantity),
@@ -95,10 +93,8 @@ const OrderPage = () => {
     };
 
     try {
-      // POST ditujukan ke endpoint /transactions/checkout
       const res = await api.post("/transactions/checkout", payload);
 
-      // Backend mengembalikan data di res.data.data
       setInvoice(res.data?.data || res.data);
       setStage(3);
       localStorage.removeItem("cart");
@@ -123,7 +119,6 @@ const OrderPage = () => {
 
   return (
     <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
-      {/* TAHAP 1: Ringkasan Menu */}
       {stage === 1 && (
         <div className="space-y-5">
           <h2 className="text-xl font-bold text-[#8C5A3C] border-b pb-2 flex items-center gap-2">
@@ -221,7 +216,6 @@ const OrderPage = () => {
         </div>
       )}
 
-      {/* TAHAP 2: Input Pembayaran Cash */}
       {stage === 2 && (
         <div className="space-y-6">
           <h2 className="text-xl font-bold text-[#8C5A3C] border-b pb-2">
@@ -275,7 +269,6 @@ const OrderPage = () => {
         </div>
       )}
 
-      {/* TAHAP 3: Struk Sukses */}
       {stage === 3 && invoice && (
         <div className="space-y-6 text-center">
           <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto text-2xl font-bold">
@@ -290,7 +283,7 @@ const OrderPage = () => {
             </p>
           </div>
 
-          <div className="text-left bg-amber-50/40 border border-amber-900/10 p-5 rounded-xl font-mono text-xs text-slate-700 space-y-3 shadow-inner">
+          <div id="printablereceipt" className="text-left bg-amber-50/40 border border-amber-900/10 p-5 rounded-xl font-mono text-xs text-slate-700 space-y-3 shadow-inner">
             <div className="text-center font-bold">
               <p className="text-sm">CNC CAFE & RESTO</p>
               <p className="font-normal text-[10px] text-slate-400">
