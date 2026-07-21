@@ -218,7 +218,7 @@ const AdminPage = () => {
               onClick={fetchTransactions}
               className="bg-[#8C5A3C] hover:bg-[#713f27] text-white px-3 py-1.5 rounded-xl text-xs font-semibold transition shadow-sm"
             >
-              🔄 Refresh Data
+            Refresh
             </button>
           </div>
 
