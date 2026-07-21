@@ -6,12 +6,53 @@ const OrderPage = () => {
   const [cashAmount, setCashAmount] = useState("");
   const [customer, setCustomer] = useState("");
   const [invoice, setInvoice] = useState(null);
-  const [stage, setStage] = useState(1); // 1: Cart Summary, 2: Cash Input, 3: Receipt Success
 
   useEffect(() => {
     const loadedCart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(loadedCart);
   }, []);
+
+  // Helper untuk menyimpan perubahan cart ke LocalStorage & State
+  const updateCartState = (updatedCart) => {
+    setCart(updatedCart);
+    localStorage.setItem("cart", JSON.stringify(updatedCart));
+  };
+
+  // 1. Fungsi Tambah Kuantitas (+)
+  const handleIncreaseQuantity = (productId) => {
+    const updatedCart = cart.map((item) =>
+      (item.id || item._id) === productId
+        ? { ...item, quantity: item.quantity + 1 }
+        : item,
+    );
+    updateCartState(updatedCart);
+  };
+
+  // 2. Fungsi Kurangi Kuantitas (-)
+  const handleDecreaseQuantity = (productId) => {
+    const targetItem = cart.find((item) => (item.id || item._id) === productId);
+
+    // Jika jumlah sisa 1 dan dikurangi, konfirmasi hapus item
+    if (targetItem.quantity === 1) {
+      handleRemoveItem(productId);
+      return;
+    }
+
+    const updatedCart = cart.map((item) =>
+      (item.id || item._id) === productId
+        ? { ...item, quantity: item.quantity - 1 }
+        : item,
+    );
+    updateCartState(updatedCart);
+  };
+
+  // 3. Fungsi Hapus Item dari Keranjang
+  const handleRemoveItem = (productId) => {
+    const updatedCart = cart.filter(
+      (item) => (item.id || item._id) !== productId,
+    );
+    updateCartState(updatedCart);
+  };
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -60,7 +101,6 @@ const OrderPage = () => {
         "Backend belum merespons penuh, mengaktifkan penyimpanan lokal sementara (Mode Offline).",
         err,
       );
-      // Mode Offline / Fallback sesuai batasan dependensi lokal browser pada dokumen SRS
       setInvoice({
         ...payload,
         id: "RTL-" + Math.floor(Math.random() * 899999 + 100000),
@@ -80,36 +120,73 @@ const OrderPage = () => {
 
   return (
     <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
-      {/* TAHAP 1: Ringkasan Menu */}
+      {/* TAHAP 1: Ringkasan Menu & Pengaturan Kuantitas */}
       {stage === 1 && (
         <div className="space-y-5">
           <h2 className="text-xl font-bold text-[#8C5A3C] border-b pb-2 flex items-center gap-2">
             🛎️ DAFTAR PESANAN
           </h2>
-          <div className="divide-y divide-slate-100 max-h-60 overflow-y-auto pr-1">
-            {cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex justify-between items-center py-3"
-              >
-                <div>
-                  <p className="font-semibold text-slate-800 text-sm">
-                    {item.name}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    x{item.quantity} @ Rp {item.price.toLocaleString("id-ID")}
-                  </p>
+          <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-1">
+            {cart.map((item) => {
+              const itemId = item.id || item._id;
+              return (
+                <div
+                  key={itemId}
+                  className="flex justify-between items-center py-3 gap-3"
+                >
+                  <div className="flex-1">
+                    <p className="font-semibold text-slate-800 text-sm">
+                      {item.name}
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      @ Rp {item.price.toLocaleString("id-ID")}
+                    </p>
+                  </div>
+
+                  {/* Kontrol Tambah/Kurang Kuantitas */}
+                  <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
+                    <button
+                      onClick={() => handleDecreaseQuantity(itemId)}
+                      className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-slate-700 font-bold hover:bg-red-50 hover:text-red-600 shadow-sm transition text-xs"
+                      title="Kurangi"
+                    >
+                      -
+                    </button>
+                    <span className="w-6 text-center text-xs font-bold text-slate-800">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => handleIncreaseQuantity(itemId)}
+                      className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-slate-700 font-bold hover:bg-green-50 hover:text-green-600 shadow-sm transition text-xs"
+                      title="Tambah"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Subtotal & Tombol Hapus */}
+                  <div className="text-right flex items-center gap-3">
+                    <span className="font-bold text-slate-700 text-sm min-w-[70px]">
+                      Rp {(item.price * item.quantity).toLocaleString("id-ID")}
+                    </span>
+                    <button
+                      onClick={() => handleRemoveItem(itemId)}
+                      className="text-slate-400 hover:text-red-500 transition text-sm"
+                      title="Hapus Produk"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
-                <span className="font-bold text-slate-700 text-sm">
-                  Rp {(item.price * item.quantity).toLocaleString("id-ID")}
-                </span>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
           <div className="border-t pt-4 flex justify-between items-center text-lg font-black text-slate-900">
             <span>Total Keseluruhan</span>
             <span>Rp {subtotal.toLocaleString("id-ID")}</span>
           </div>
+
           <div className="space-y-2">
             <label className="block text-xs font-bold text-slate-600">
               Nama Pelanggan / Nomor Meja
@@ -122,6 +199,7 @@ const OrderPage = () => {
               className="w-full text-sm p-2.5 border rounded-xl outline-none focus:border-[#8C5A3C]"
             />
           </div>
+
           <button
             onClick={() => setStage(2)}
             className="w-full bg-[#8C5A3C] hover:bg-[#734428] text-white py-3 rounded-xl font-bold transition text-sm"
