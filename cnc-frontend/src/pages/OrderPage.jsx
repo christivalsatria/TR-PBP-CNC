@@ -5,59 +5,56 @@ const OrderPage = () => {
   const [cart, setCart] = useState([]);
   const [cashAmount, setCashAmount] = useState("");
   const [customer, setCustomer] = useState("");
+  const [tableNumber, setTableNumber] = useState("");
   const [invoice, setInvoice] = useState(null);
-  const [stage, setStage] = useState(1); // 1: Cart Summary, 2: Cash Input, 3: Receipt Success
+  const [stage, setStage] = useState(1); // 1: Ringkasan, 2: Bayar, 3: Struk Sukses
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const loadedCart = JSON.parse(localStorage.getItem("cart") || "[]");
     setCart(loadedCart);
   }, []);
 
-  // Helper untuk menyimpan perubahan cart ke LocalStorage & State
   const updateCartState = (updatedCart) => {
     setCart(updatedCart);
     localStorage.setItem("cart", JSON.stringify(updatedCart));
   };
 
-  // 1. Fungsi Tambah Kuantitas (+)
   const handleIncreaseQuantity = (productId) => {
     const updatedCart = cart.map((item) =>
-      (item.id || item._id) === productId
+      (item._id || item.id) === productId
         ? { ...item, quantity: item.quantity + 1 }
-        : item
+        : item,
     );
     updateCartState(updatedCart);
   };
 
-  // 2. Fungsi Kurangi Kuantitas (-)
   const handleDecreaseQuantity = (productId) => {
-    const targetItem = cart.find((item) => (item.id || item._id) === productId);
+    const targetItem = cart.find((item) => (item._id || item.id) === productId);
 
-    // Jika jumlah sisa 1 dan dikurangi, konfirmasi hapus item
     if (targetItem.quantity === 1) {
       handleRemoveItem(productId);
       return;
     }
 
     const updatedCart = cart.map((item) =>
-      (item.id || item._id) === productId
+      (item._id || item.id) === productId
         ? { ...item, quantity: item.quantity - 1 }
-        : item
+        : item,
     );
     updateCartState(updatedCart);
   };
 
-  // 3. Fungsi Hapus Item dari Keranjang
   const handleRemoveItem = (productId) => {
     const updatedCart = cart.filter(
-      (item) => (item.id || item._id) !== productId
+      (item) => (item._id || item.id) !== productId,
     );
     updateCartState(updatedCart);
   };
 
   const subtotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
   const balanceDue = Number(cashAmount) - subtotal;
 
@@ -68,45 +65,50 @@ const OrderPage = () => {
     setInvoice(null);
     setCashAmount("");
     setCustomer("");
+    setTableNumber("");
   };
 
+  // FUNGSI CHECKOUT DENGAN FORMAT TEPAT SESUAI EXPRESS ROUTER
   const processPaymentSubmit = async () => {
     if (Number(cashAmount) < subtotal) {
       alert("Nominal uang tunai yang dimasukkan kurang!");
       return;
     }
 
+    setIsSubmitting(true);
+
+    const loggedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const activeCashier = loggedUser.username || loggedUser.name || "Kasir CNC";
+
+    // Format items persis sesuai instruksi backend: [{ productId: "id", quantity: 2 }]
+    const formattedItems = cart.map((item) => ({
+      productId: item._id || item.id,
+      quantity: Number(item.quantity),
+    }));
+
     const payload = {
-      customerName: customer || "Pelanggan Umum",
-      items: cart,
-      total: subtotal,
-      cashReceived: Number(cashAmount),
-      change: balanceDue,
-      date: new Date().toLocaleDateString("id-ID", {
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      }),
+      customerName: customer.trim() || "General Customer",
+      tableNumber: tableNumber.trim() || "-",
+      items: formattedItems,
+      amountPaid: Number(cashAmount),
+      cashierName: activeCashier,
     };
 
     try {
-      const res = await api.post("/transactions", payload);
-      setInvoice({
-        ...payload,
-        id:
-          res.data?.id || "RTL-" + Math.floor(Math.random() * 900000 + 100000),
-      });
+      // POST ditujukan ke endpoint /transactions/checkout
+      const res = await api.post("/transactions/checkout", payload);
+
+      // Backend mengembalikan data di res.data.data
+      setInvoice(res.data?.data || res.data);
       setStage(3);
+      localStorage.removeItem("cart");
     } catch (err) {
-      console.warn(
-        "Backend belum merespons penuh, mengaktifkan penyimpanan lokal sementara (Mode Offline).",
-        err
-      );
-      setInvoice({
-        ...payload,
-        id: "RTL-" + Math.floor(Math.random() * 899999 + 100000),
-      });
-      setStage(3);
+      console.error("Error Checkout Backend:", err.response?.data || err);
+      const serverMessage =
+        err.response?.data?.message || err.response?.data?.error || err.message;
+      alert(`Gagal Checkout: ${serverMessage}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -121,7 +123,7 @@ const OrderPage = () => {
 
   return (
     <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-100 p-6">
-      {/* TAHAP 1: Ringkasan Menu & Pengaturan Kuantitas */}
+      {/* TAHAP 1: Ringkasan Menu */}
       {stage === 1 && (
         <div className="space-y-5">
           <h2 className="text-xl font-bold text-[#8C5A3C] border-b pb-2 flex items-center gap-2">
@@ -129,7 +131,7 @@ const OrderPage = () => {
           </h2>
           <div className="divide-y divide-slate-100 max-h-72 overflow-y-auto pr-1">
             {cart.map((item) => {
-              const itemId = item.id || item._id;
+              const itemId = item._id || item.id;
               return (
                 <div
                   key={itemId}
@@ -144,12 +146,10 @@ const OrderPage = () => {
                     </p>
                   </div>
 
-                  {/* Kontrol Tambah/Kurang Kuantitas */}
                   <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-lg">
                     <button
                       onClick={() => handleDecreaseQuantity(itemId)}
                       className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-slate-700 font-bold hover:bg-red-50 hover:text-red-600 shadow-sm transition text-xs"
-                      title="Kurangi"
                     >
                       -
                     </button>
@@ -159,13 +159,11 @@ const OrderPage = () => {
                     <button
                       onClick={() => handleIncreaseQuantity(itemId)}
                       className="w-7 h-7 flex items-center justify-center bg-white rounded-md text-slate-700 font-bold hover:bg-green-50 hover:text-green-600 shadow-sm transition text-xs"
-                      title="Tambah"
                     >
                       +
                     </button>
                   </div>
 
-                  {/* Subtotal & Tombol Hapus */}
                   <div className="text-right flex items-center gap-3">
                     <span className="font-bold text-slate-700 text-sm min-w-[70px]">
                       Rp {(item.price * item.quantity).toLocaleString("id-ID")}
@@ -173,7 +171,6 @@ const OrderPage = () => {
                     <button
                       onClick={() => handleRemoveItem(itemId)}
                       className="text-slate-400 hover:text-red-500 transition text-sm"
-                      title="Hapus Produk"
                     >
                       🗑️
                     </button>
@@ -188,17 +185,31 @@ const OrderPage = () => {
             <span>Rp {subtotal.toLocaleString("id-ID")}</span>
           </div>
 
-          <div className="space-y-2">
-            <label className="block text-xs font-bold text-slate-600">
-              Nama Pelanggan / Nomor Meja
-            </label>
-            <input
-              type="text"
-              value={customer}
-              onChange={(e) => setCustomer(e.target.value)}
-              placeholder="Contoh: Christival / Meja 05"
-              className="w-full text-sm p-2.5 border rounded-xl outline-none focus:border-[#8C5A3C]"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                Nama Pelanggan
+              </label>
+              <input
+                type="text"
+                value={customer}
+                onChange={(e) => setCustomer(e.target.value)}
+                placeholder="Christival"
+                className="w-full text-sm p-2.5 border rounded-xl outline-none focus:border-[#8C5A3C]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-600 mb-1">
+                Nomor Meja
+              </label>
+              <input
+                type="text"
+                value={tableNumber}
+                onChange={(e) => setTableNumber(e.target.value)}
+                placeholder="05 / Takeaway"
+                className="w-full text-sm p-2.5 border rounded-xl outline-none focus:border-[#8C5A3C]"
+              />
+            </div>
           </div>
 
           <button
@@ -253,10 +264,12 @@ const OrderPage = () => {
             </button>
             <button
               onClick={processPaymentSubmit}
-              disabled={!cashAmount || Number(cashAmount) < subtotal}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={
+                isSubmitting || !cashAmount || Number(cashAmount) < subtotal
+              }
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-bold text-sm transition disabled:opacity-50"
             >
-              Konfirmasi Bayar
+              {isSubmitting ? "Memotong Stok..." : "Konfirmasi Bayar"}
             </button>
           </div>
         </div>
@@ -273,11 +286,10 @@ const OrderPage = () => {
               Pembayaran Sukses
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              Transaksi selesai diolah ke dalam database.
+              Stok telah terpotong dan transaksi tersimpan.
             </p>
           </div>
 
-          {/* Tampilan Struk Fisik Kasir Bawaan */}
           <div className="text-left bg-amber-50/40 border border-amber-900/10 p-5 rounded-xl font-mono text-xs text-slate-700 space-y-3 shadow-inner">
             <div className="text-center font-bold">
               <p className="text-sm">CNC CAFE & RESTO</p>
@@ -287,19 +299,23 @@ const OrderPage = () => {
             </div>
             <div className="border-b border-dashed border-slate-300 my-2"></div>
             <div className="space-y-0.5">
-              <p>ID Transaksi : {invoice.id}</p>
-              <p>Pelanggan   : {invoice.customerName}</p>
-              <p>Tanggal     : {invoice.date}</p>
+              <p>ID Transaksi : {invoice.transactionId}</p>
+              <p>Pelanggan : {invoice.customerName}</p>
+              <p>Meja : {invoice.tableNumber}</p>
+              <p>Kasir : {invoice.cashierName}</p>
             </div>
             <div className="border-b border-dashed border-slate-300 my-2"></div>
             <div className="space-y-1.5">
-              {invoice.items.map((item, index) => (
+              {invoice.items?.map((item, index) => (
                 <div key={index} className="flex justify-between">
                   <span>
-                    {item.name} (x{item.quantity})
+                    {item.nameAtTransaction || item.name} (x{item.quantity})
                   </span>
                   <span>
-                    Rp {(item.price * item.quantity).toLocaleString("id-ID")}
+                    Rp{" "}
+                    {(
+                      (item.priceAtTransaction || item.price) * item.quantity
+                    ).toLocaleString("id-ID")}
                   </span>
                 </div>
               ))}
@@ -307,15 +323,15 @@ const OrderPage = () => {
             <div className="border-b border-dashed border-slate-300 my-2"></div>
             <div className="flex justify-between font-bold">
               <span>Sub-Total</span>
-              <span>Rp {invoice.total.toLocaleString("id-ID")}</span>
+              <span>Rp {invoice.totalAmount?.toLocaleString("id-ID")}</span>
             </div>
             <div className="flex justify-between">
               <span>Bayar Tunai</span>
-              <span>Rp {invoice.cashReceived.toLocaleString("id-ID")}</span>
+              <span>Rp {invoice.amountPaid?.toLocaleString("id-ID")}</span>
             </div>
             <div className="flex justify-between font-bold text-green-800">
               <span>Kembalian</span>
-              <span>Rp {invoice.change.toLocaleString("id-ID")}</span>
+              <span>Rp {invoice.change?.toLocaleString("id-ID")}</span>
             </div>
           </div>
 

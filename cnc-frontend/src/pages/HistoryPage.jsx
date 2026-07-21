@@ -6,26 +6,19 @@ const HistoryPage = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchHistoryRecords = async () => {
+    const fetchHistory = async () => {
       try {
-        const response = await api.get("/transactions");
+        // Panggil endpoint /transactions/history
+        const response = await api.get("/transactions/history");
         setTransactions(response.data);
       } catch (error) {
-        console.error(
-          "Gagal terhubung ke API history, menampilkan replika data mockup:",
-          error,
-        );
-        // Menyesuaikan detail tampilan dengan data mockup dokumen skenario SRS
-        setTransactions([
-          { id: "#001", date: "21-07-2026", time: "11:30 WIB", total: 53000 },
-          { id: "#002", date: "22-07-2026", time: "16:30 WIB", total: 42000 },
-        ]);
+        console.error("Gagal mengambil riwayat transaksi:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchHistoryRecords();
+    fetchHistory();
   }, []);
 
   return (
@@ -35,27 +28,38 @@ const HistoryPage = () => {
       </h2>
 
       {isLoading ? (
-        <p className="text-sm text-slate-500 font-medium">
-          Sinkronisasi data riwayat...
-        </p>
+        <p className="text-sm text-slate-500 font-medium">Memuat riwayat...</p>
       ) : (
         <div className="space-y-3">
           {transactions.map((tx) => (
             <div
-              key={tx.id}
+              key={tx._id || tx.transactionId}
               className="bg-white p-4 rounded-xl border border-slate-100 flex justify-between items-center shadow-sm hover:shadow-md transition"
             >
               <div>
                 <p className="font-bold text-slate-800 text-sm">
-                  Transaksi {tx.id}
+                  Transaksi {tx.transactionId}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  {tx.date} • {tx.time}
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Pelanggan: {tx.customerName} • Kasir: {tx.cashierName}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  {new Date(tx.createdAt).toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  WIB
                 </p>
               </div>
               <div className="text-right">
-                <span className="font-extrabold text-[#8C5A3C] text-base">
-                  Rp {tx.total.toLocaleString("id-ID")}
+                <span className="font-extrabold text-[#8C5A3C] text-base block">
+                  Rp {tx.totalAmount?.toLocaleString("id-ID")}
+                </span>
+                <span className="text-[11px] text-slate-400">
+                  {tx.items?.length || 0} item
                 </span>
               </div>
             </div>
