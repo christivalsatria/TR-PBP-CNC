@@ -198,7 +198,6 @@ const AdminPage = () => {
 
   return (
     <>
-      {/* REKAP MINGGUAN */}
       {location.pathname === "/admin" && (
         <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-5">
