@@ -25,10 +25,10 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ message: 'Username tidak terdaftar' });
+    if (!user) return res.status(400).json({ message: 'Username tidak terdaftar/Password Salah' });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Password salah' });
+    if (!isMatch) return res.status(400).json({ message: 'Username tidak terdaftar/Password Salah' });
 
     const token = jwt.sign({ id: user._id, role: user.role, username: user.username }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
